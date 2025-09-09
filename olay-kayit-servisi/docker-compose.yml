@@ -1,0 +1,78 @@
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: event_postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5334:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  event_api1:
+    build: ./app
+    container_name: event_api1
+    env_file: .env
+    environment:
+      INSTANCE_NAME: api-1
+    depends_on:
+      - postgres
+
+  event_api2:
+    build: ./app
+    container_name: event_api2
+    env_file: .env
+    environment:
+      INSTANCE_NAME: api-2
+    depends_on:
+      - postgres
+
+  event_api3:
+    build: ./app
+    container_name: event_api3
+    env_file: .env
+    environment:
+      INSTANCE_NAME: api-3
+    depends_on:
+      - postgres
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: event_nginx
+    depends_on:
+      - event_api1
+      - event_api2
+      - event_api3
+    ports:
+      - "8081:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+
+  es01:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.14.3
+    container_name: event_es01
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+    ports:
+      - "9200:9200"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.14.3
+    container_name: event_kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://es01:9200
+    depends_on:
+      - es01
+    ports:
+      - "5603:5601"
+
+volumes:
+  pgdata:
+  esdata:
