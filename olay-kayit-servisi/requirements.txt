@@ -1,9 +1,0 @@
-fastapi
-uvicorn[standard]
-sqlalchemy
-psycopg2-binary
-pydantic
-elasticsearch==8.14.0
-requests
-python-dotenv
-watchfiles
